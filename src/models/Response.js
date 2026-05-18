@@ -53,4 +53,5 @@ class Response {
   }
 }
 
-module.exports = Response;
+// ✅ CORRECTION : "module.exports = Response" remplacé par export ESM
+export default Response;

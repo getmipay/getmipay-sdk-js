@@ -2,42 +2,38 @@
 // Fichier      : src/utils/errors.js
 // Description  : Classes d'erreurs personnalisées du SDK GetMiPay.
 //                Permettent de distinguer les erreurs de validation (côté client)
-//                des erreurs API (côté serveur) lors du catch dans le code utilisateur.
+//                des erreurs API (côté serveur) dans les blocs catch.
 // =============================================================================
 
 /**
- * Erreur levée quand les paramètres fournis par l'utilisateur sont invalides.
- * Ex : champ obligatoire manquant, format incorrect.
- * Correspond à une erreur côté CLIENT (avant tout envoi réseau).
+ * Erreur levée quand les paramètres fournis par le développeur sont invalides.
+ * Se produit AVANT tout appel réseau (validation locale).
+ *
+ * @example
+ * try { await sdk.payments.payin({}) }
+ * catch (e) { if (e instanceof ValidationError) { ... } }
  */
-class ValidationError extends Error {
-  /**
-   * @param {string} message - Description précise du champ ou de la règle violée.
-   */
+export class ValidationError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'ValidationError'; // Nom lisible dans les logs et stack traces
-    this.type = 'validation';      // Type utile pour un switch/case dans le code appelant
+    this.name = 'ValidationError';
+    this.type = 'validation';
   }
 }
 
 /**
- * Erreur levée quand l'API GetMiPay retourne une réponse d'erreur HTTP
- * ou lorsqu'une erreur réseau survient.
- * Correspond à une erreur côté SERVEUR ou infrastructure.
+ * Erreur levée quand l'API GetMiPay retourne une réponse HTTP d'erreur (4xx, 5xx)
+ * ou quand une erreur réseau survient.
+ *
+ * @example
+ * try { await sdk.payments.payin(params) }
+ * catch (e) { if (e instanceof ApiError) { console.log(e.statusCode) } }
  */
-class ApiError extends Error {
-  /**
-   * @param {string} message    - Message d'erreur retourné par l'API ou le réseau.
-   * @param {number} statusCode - Code HTTP de la réponse (ex: 401, 422, 500).
-   *                              0 si aucune réponse n'a été reçue (timeout / réseau).
-   */
+export class ApiError extends Error {
   constructor(message, statusCode) {
     super(message);
-    this.name       = 'ApiError';    // Nom lisible dans les logs
-    this.type       = 'api';         // Type pour distinguer des ValidationError
-    this.statusCode = statusCode;    // Code HTTP pour adapter la gestion d'erreur
+    this.name       = 'ApiError';
+    this.type       = 'api';
+    this.statusCode = statusCode;
   }
 }
-
-module.exports = { ValidationError, ApiError };

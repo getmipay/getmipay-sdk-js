@@ -6,19 +6,19 @@
 //                  - payments.getStatus() → vérifier le statut d'un paiement
 // =============================================================================
 
-const HttpClient          = require('../http/client');
-const Signature           = require('../auth/signature');
-const Payment             = require('../models/Payment');
-const Response            = require('../models/Response');
-const { ValidationError, ApiError } = require('../utils/errors');
-const { validatePayinParams }       = require('../utils/validators');
+import HttpClient from '../http/client.js';
+import Signature  from '../auth/signature.js';
+import Payment    from '../models/Payment.js';
+import Response   from '../models/Response.js';
+import { ValidationError, ApiError } from '../utils/errors.js';
+import { validatePayinParams }       from '../utils/validators.js';
 
 class Payments {
   /**
    * Initialise le service Payments avec la configuration SDK.
    * Le client HTTP est instancié ici et réutilisé pour toutes les requêtes.
    *
-   * @param {import('../config')} config - Instance de configuration du SDK.
+   * @param {import('../config.js').default} config - Instance de configuration du SDK.
    */
   constructor(config) {
     this.config = config;
@@ -49,8 +49,8 @@ class Payments {
    * @param {string} params.callback_url     - URL de webhook pour la notification.
    *
    * @returns {Promise<Response>} Réponse normalisée contenant référence et statut.
-   * @throws {ValidationError} Si un champ obligatoire est manquant ou invalide.
-   * @throws {ApiError}        Si l'API retourne une erreur HTTP.
+   * @throws {ValidationError}   Si un champ obligatoire est manquant ou invalide.
+   * @throws {ApiError}          Si l'API retourne une erreur HTTP.
    */
   async payin(params) {
     // Étape 1 : Valider les paramètres avant tout appel réseau
@@ -89,8 +89,8 @@ class Payments {
    *
    * @param {string} reference - Référence du paiement (ex: 'GMP-123456').
    * @returns {Promise<Response>} Réponse normalisée avec le statut à jour.
-   * @throws {ValidationError} Si la référence est absente.
-   * @throws {ApiError}        Si l'API retourne une erreur HTTP.
+   * @throws {ValidationError}   Si la référence est absente.
+   * @throws {ApiError}          Si l'API retourne une erreur HTTP.
    */
   async getStatus(reference) {
     // Valider que la référence est fournie
@@ -113,4 +113,4 @@ class Payments {
   }
 }
 
-module.exports = Payments;
+export default Payments;

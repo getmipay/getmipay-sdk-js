@@ -2,16 +2,17 @@
   "name": "@getmipay/sdk",
   "version": "1.0.0",
   "description": "Official GetMiPay SDK for JavaScript/Node.js",
+  "type": "module",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
   "types": "types/index.d.ts",
   "engines": {
     "node": ">=14.0.0"
   },
   "scripts": {
-    "test": "jest",
-    "lint": "eslint src/",
-    "build": "tsc",
-    "prepublishOnly": "npm test"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "keywords": [
     "mobile-money",
@@ -22,7 +23,8 @@
   "author": "GetMiPay",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.16.1"
+    "axios": "^1.16.1",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@types/node": "^20.19.41",
@@ -32,5 +34,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/getmipay/getmipay-sdk-js.git"
-  }
+  },
+  "jest": {
+  "setupFiles": ["<rootDir>/tests/setup.js"]
+}
 }

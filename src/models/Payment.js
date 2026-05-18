@@ -23,9 +23,9 @@ class Payment {
     this.amount         = params.amount;
     this.currency       = params.currency;
     this.wallet         = params.wallet;
-    this.customer_name  = params.customer_name  || '';  // Défaut : chaîne vide
-    this.customer_email = params.customer_email || '';  // Défaut : chaîne vide
-    this.description    = params.description    || '';  // Défaut : chaîne vide
+    this.customer_name  = params.customer_name  || ''; // Défaut : chaîne vide
+    this.customer_email = params.customer_email || ''; // Défaut : chaîne vide
+    this.description    = params.description    || ''; // Défaut : chaîne vide
     this.callback_url   = params.callback_url;
   }
 
@@ -46,4 +46,5 @@ class Payment {
   }
 }
 
-module.exports = Payment;
+// ✅ CORRECTION : "module.exports = Payment" remplacé par export ESM
+export default Payment;

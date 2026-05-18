@@ -5,13 +5,13 @@
 //                et que les headers sont complets et cohérents.
 // =============================================================================
 
-const Signature = require('../src/auth/signature');
-const crypto    = require('crypto');
+import Signature from '../src/auth/signature.js';
+import crypto from 'crypto';
 
 describe('Signature', () => {
 
   // Données fixes utilisées dans tous les tests
-  const API_KEY   = 'gmp_sk_test_abc123';
+  const API_KEY   = process.env.GMP_API_KEY;
   const METHOD    = 'POST';
   const PATH      = '/payments/payin';
   const TIMESTAMP = '1700000000';
