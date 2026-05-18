@@ -26,6 +26,7 @@ const payment = await mipay.payments.payin({
   amount        : 5000,
   currency      : 'XOF',
   wallet        : '+2250700000000',
+  service       : 1, // MTN=1, Orange=2
   customer_name : 'Jean Dupont',
   callback_url  : 'https://yourapp.com/webhook',
 });
@@ -57,16 +58,27 @@ Variable d'environnement alternative : `GMP_API_KEY`.
 | `amount`         | `number` | ✅     | Montant du paiement.           |
 | `currency`       | `string` | ✅     | Code ISO 4217 (ex: `XOF`).    |
 | `wallet`         | `string` | ✅     | Numéro mobile money.           |
+| `service`        | `number|string` | ✅ | Service mobile money : `1`/`MTN`, `2`/`Orange`. |
 | `callback_url`   | `string` | ✅     | URL de webhook.                |
 | `customer_name`  | `string` | —      | Nom du client.                 |
 | `customer_email` | `string` | —      | Email du client.               |
 | `description`    | `string` | —      | Description libre.             |
 
-### `payments.getStatus(reference)`
+### `payments.getStatus(params)`
 
-Récupère le statut d'un paiement par sa référence.
+Récupère le statut direct d'un paiement.
 
 ---
+
+Exemple de vérification de statut direct :
+
+```javascript
+const status = await mipay.payments.getStatus({
+  order_id : 'MPAYIN_ABC123DEF456',
+  pay_id   : 'MLS690d472dd7ee7B',
+  service  : 1, // MTN=1, Orange=2
+});
+```
 
 ## Gestion des erreurs
 

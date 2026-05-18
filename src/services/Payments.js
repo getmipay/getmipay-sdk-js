@@ -7,11 +7,14 @@
 // =============================================================================
 
 import HttpClient from '../http/client.js';
-import Signature  from '../auth/signature.js';
 import Payment    from '../models/Payment.js';
 import Response   from '../models/Response.js';
-import { ValidationError, ApiError } from '../utils/errors.js';
-import { validatePayinParams }       from '../utils/validators.js';
+import { ApiError } from '../utils/errors.js';
+import {
+  validatePayinParams,
+  validateStatusParams,
+  resolvePaymentService,
+} from '../utils/validators.js';
 
 class Payments {
   /**
@@ -35,7 +38,7 @@ class Payments {
    * Étapes internes :
    *   1. Validation des paramètres obligatoires
    *   2. Construction du payload via le modèle Payment
-   *   3. Génération des headers signés (HMAC-SHA256)
+   *   3. Génération des headers d'authentification
    *   4. Envoi de la requête POST à /payments/payin
    *   5. Retour de la réponse normalisée via le modèle Response
    *
@@ -47,6 +50,7 @@ class Payments {
    * @param {string} [params.customer_email] - Email du client.
    * @param {string} [params.description]    - Description libre du paiement.
    * @param {string} params.callback_url     - URL de webhook pour la notification.
+   * @param {number|string} params.service    - Service mobile money (MTN=1, Orange=2).
    *
    * @returns {Promise<Response>} Réponse normalisée contenant référence et statut.
    * @throws {ValidationError}   Si un champ obligatoire est manquant ou invalide.
@@ -62,10 +66,7 @@ class Payments {
 
     // Étape 3 : Définir le chemin et la méthode HTTP
     const path   = '/payments/payin';
-    const method = 'POST';
-
-    // Générer les headers d'authentification signés pour cette requête
-    const headers = Signature.getHeaders(this.config.apiKey, method, path, payload);
+    const headers = this._getPayinHeaders(params);
 
     try {
       // Étape 4 : Envoyer la requête POST
@@ -92,24 +93,47 @@ class Payments {
    * @throws {ValidationError}   Si la référence est absente.
    * @throws {ApiError}          Si l'API retourne une erreur HTTP.
    */
-  async getStatus(reference) {
-    // Valider que la référence est fournie
-    if (!reference) {
-      throw new ValidationError('Payment reference is required to get status.');
-    }
+  async getStatus(params) {
+    // Valider les identifiants requis avant tout appel réseau
+    validateStatusParams(params);
 
-    const path   = `/payments/${reference}/status`;
-    const method = 'GET';
+    const path = '/payments/direct-status';
+    const payload = this._getStatusPayload(params);
 
-    // Headers signés (pas de body pour un GET)
-    const headers = Signature.getHeaders(this.config.apiKey, method, path);
+    const headers = this._getAuthHeaders();
 
     try {
-      const data = await this.http.get(path, headers);
+      const data = await this.http.post(path, payload, headers);
       return new Response(data);
     } catch (error) {
       throw new ApiError(error.message, error.statusCode || 0);
     }
+  }
+
+  _getAuthHeaders() {
+    return {
+      'X-API-KEY': this.config.apiKey,
+      'Content-Type': 'application/json',
+      'x-sdk-version': this.config.version,
+      'x-sdk-language': 'javascript',
+    };
+  }
+
+  _getPayinHeaders(params) {
+    return {
+      ...this._getAuthHeaders(),
+      operation: '2',
+      service: resolvePaymentService(params),
+    };
+  }
+
+  _getStatusPayload(params) {
+    return {
+      order_id: params.order_id,
+      pay_id: params.pay_id,
+      operation: '2',
+      service: resolvePaymentService(params),
+    };
   }
 }
 

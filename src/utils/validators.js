@@ -15,6 +15,10 @@ import { ValidationError } from './errors.js';
  * @throws {ValidationError}
  */
 export function validatePayinParams(params) {
+  if (!params || typeof params !== 'object') {
+    throw new ValidationError('PayIn parameters are required');
+  }
+
   // Vérification des champs obligatoires
   const required = ['amount', 'currency', 'wallet', 'callback_url'];
   for (const field of required) {
@@ -39,6 +43,52 @@ export function validatePayinParams(params) {
   } catch {
     throw new ValidationError('"callback_url" must be a valid URL');
   }
+
+  resolvePaymentService(params);
+}
+
+export function validateStatusParams(params) {
+  if (!params || typeof params !== 'object') {
+    throw new ValidationError('Status parameters are required');
+  }
+
+  const required = ['order_id', 'pay_id'];
+  for (const field of required) {
+    if (!params[field]) {
+      throw new ValidationError(`Missing required field: "${field}"`);
+    }
+  }
+
+  resolvePaymentService(params);
+}
+
+export function resolvePaymentService(params) {
+  const service = params.service ?? params.serviceId ?? params.operator;
+
+  if (service === undefined || service === null || service === '') {
+    throw new ValidationError('Missing required field: "service" (MTN=1, Orange=2)');
+  }
+
+  if (typeof service === 'number') {
+    if ([1, 2].includes(service)) {
+      return service.toString();
+    }
+    throw new ValidationError('"service" must be 1 for MTN or 2 for Orange');
+  }
+
+  const normalized = String(service).trim().toLowerCase();
+  const serviceMap = {
+    '1': '1',
+    mtn: '1',
+    '2': '2',
+    orange: '2',
+  };
+
+  if (!serviceMap[normalized]) {
+    throw new ValidationError('"service" must be 1/MTN or 2/Orange');
+  }
+
+  return serviceMap[normalized];
 }
 
 // ✅ CORRECTION : "module.exports = { validatePayinParams }" supprimé

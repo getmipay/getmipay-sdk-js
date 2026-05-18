@@ -7,7 +7,7 @@
 //   node examples/basic-payin.js
 // =============================================================================
 
-const { GetMiPay } = require('../src/index');
+import { GetMiPay } from '../src/index.js';
 
 // ---------------------------------------------------------------------------
 // Étape 1 : Instancier le SDK avec votre clé API sandbox
@@ -28,6 +28,7 @@ async function testPayment() {
       amount        : 5000,                           // Montant en centimes ou unité selon la devise
       currency      : 'XOF',                          // Franc CFA (Afrique de l'Ouest)
       wallet        : '+2250700000000',               // Numéro mobile money du payeur
+      service       : 1,                               // MTN=1, Orange=2
       customer_name : 'Test User',                    // Nom du client
       customer_email: 'test@example.com',             // Email du client (optionnel)
       description   : 'Paiement test GetMiPay SDK',   // Description libre

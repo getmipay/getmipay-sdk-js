@@ -29,7 +29,7 @@ const { default: HttpClient } = await import('../src/http/client.js');
 describe('HttpClient', () => {
   test('should create client', () => {
     const config = {
-      baseUrl: 'https://api.test.com',
+      baseUrl: 'https://getmipay.com/api/v1',
       timeout: 5000,
     };
 
@@ -72,10 +72,17 @@ const VALID_PARAMS = {
   amount         : 500,
   currency       : 'XAF',
   wallet         : '652083096',
+  service        : 1,
   customer_name  : 'Test User',
   customer_email : 'test@example.com',
   description    : 'Test payment',
   callback_url   : 'https://yourapp.com/webhook',
+};
+
+const VALID_STATUS_PARAMS = {
+  order_id: 'MPAYIN_ABC123DEF456',
+  pay_id: 'MLS690d472dd7ee7B',
+  service: 1,
 };
 
 // ---------------------------------------------------------------------------
@@ -123,7 +130,27 @@ describe('Payments Service', () => {
     expect(mockAxiosInstance.post).toHaveBeenCalledWith(
       '/payments/payin',
       expect.objectContaining({ amount: 500, currency: 'XAF' }),
-      expect.objectContaining({ headers: expect.any(Object) })
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-KEY': process.env.GMP_API_KEY,
+          operation: '2',
+          service: '1',
+        }),
+      })
+    );
+  });
+
+  test('payin() accepte Orange comme nom de service', async () => {
+    await mipay.payments.payin({ ...VALID_PARAMS, service: 'Orange' });
+    expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+      '/payments/payin',
+      expect.any(Object),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          operation: '2',
+          service: '2',
+        }),
+      })
     );
   });
 
@@ -155,6 +182,12 @@ describe('Payments Service', () => {
     await expect(mipay.payments.payin(params)).rejects.toThrow(ValidationError);
   });
 
+  test('payin() lève ValidationError si service manquant', async () => {
+    const params = { ...VALID_PARAMS };
+    delete params.service;
+    await expect(mipay.payments.payin(params)).rejects.toThrow(ValidationError);
+  });
+
   test('payin() lève ValidationError si amount est négatif', async () => {
     await expect(
       mipay.payments.payin({ ...VALID_PARAMS, amount: -100 })
@@ -172,15 +205,31 @@ describe('Payments Service', () => {
   // -------------------------------------------------------------------------
 
   test('getStatus() retourne la réponse correcte', async () => {
-    const response = await mipay.payments.getStatus('GMP-TEST-001');
+    const response = await mipay.payments.getStatus(VALID_STATUS_PARAMS);
     expect(response.reference).toBe('GMP-TEST-001');
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-      '/payments/GMP-TEST-001/status',
-      expect.objectContaining({ headers: expect.any(Object) })
+    expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+      '/payments/direct-status',
+      {
+        order_id: 'MPAYIN_ABC123DEF456',
+        pay_id: 'MLS690d472dd7ee7B',
+        operation: '2',
+        service: '1',
+      },
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-API-KEY': process.env.GMP_API_KEY,
+        }),
+      })
     );
   });
 
-  test('getStatus() lève ValidationError si référence absente', async () => {
-    await expect(mipay.payments.getStatus('')).rejects.toThrow(ValidationError);
+  test('getStatus() lève ValidationError si order_id absent', async () => {
+    await expect(mipay.payments.getStatus({})).rejects.toThrow(ValidationError);
+  });
+
+  test('getStatus() lève ValidationError si pay_id absent', async () => {
+    const params = { ...VALID_STATUS_PARAMS };
+    delete params.pay_id;
+    await expect(mipay.payments.getStatus(params)).rejects.toThrow(ValidationError);
   });
 });

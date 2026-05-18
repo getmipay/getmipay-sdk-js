@@ -33,6 +33,12 @@ declare module '@getmipay/sdk' {
     currency: string;
     /** Numéro du portefeuille mobile money (ex: '+2250700000000'). */
     wallet: string;
+    /** Service mobile money. MTN=1, Orange=2. Obligatoire sauf si serviceId ou operator est fourni. */
+    service?: 1 | 2 | '1' | '2' | 'MTN' | 'mtn' | 'Orange' | 'orange';
+    /** Alias de service, si vous préférez serviceId. */
+    serviceId?: 1 | 2 | '1' | '2';
+    /** Alias de service, si vous préférez operator. */
+    operator?: 'MTN' | 'mtn' | 'Orange' | 'orange';
     /** Nom complet du client (optionnel). */
     customer_name?: string;
     /** Adresse email du client (optionnel). */
@@ -41,6 +47,20 @@ declare module '@getmipay/sdk' {
     description?: string;
     /** URL de webhook appelée par GetMiPay après traitement du paiement. */
     callback_url: string;
+  }
+
+  /** Paramètres de vérification du statut direct. */
+  interface StatusParams {
+    /** Identifiant de commande retourné ou utilisé pour le paiement. */
+    order_id: string;
+    /** Identifiant de paiement GetMiPay. */
+    pay_id: string;
+    /** Service mobile money. MTN=1, Orange=2. Obligatoire sauf si serviceId ou operator est fourni. */
+    service?: 1 | 2 | '1' | '2' | 'MTN' | 'mtn' | 'Orange' | 'orange';
+    /** Alias de service, si vous préférez serviceId. */
+    serviceId?: 1 | 2 | '1' | '2';
+    /** Alias de service, si vous préférez operator. */
+    operator?: 'MTN' | 'mtn' | 'Orange' | 'orange';
   }
 
   // ---------------------------------------------------------------------------
@@ -91,12 +111,12 @@ declare module '@getmipay/sdk' {
 
       /**
        * Récupère le statut d'un paiement existant.
-       * @param reference - Référence unique du paiement.
+       * @param params - Paramètres de statut direct.
        * @returns Promesse résolue avec le statut à jour.
        */
-      getStatus(reference: string): Promise<PaymentResponse>;
+      getStatus(params: StatusParams): Promise<PaymentResponse>;
     };
   }
 
-  export { GetMiPay, ConfigOptions, PayInParams, PaymentResponse };
+  export { GetMiPay, ConfigOptions, PayInParams, StatusParams, PaymentResponse };
 }
