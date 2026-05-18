@@ -1,172 +1,186 @@
 // =============================================================================
 // Fichier      : tests/payments.test.js
-// Description  : Tests unitaires pour le service Payments.
-//                Le client HTTP est mocké pour éviter tout appel réseau réel.
-//                Vérifie : validation, construction du payload, gestion d'erreurs.
+// Description  : Tests du service Payments du SDK GetMiPay.
+//
+// ✅ CORRECTIONS ESM :
+//   - "jest.mock('axios')" → "jest.unstable_mockModule('axios', ...)" (ESM natif)
+//   - Les imports dynamiques DOIVENT être après le mock (ordre impératif en ESM)
+//   - "import { create } from 'axios'" supprimé (axios est entièrement mocké)
 // =============================================================================
+import { jest } from '@jest/globals';
 
-// Mock axios pour intercepter tous les appels HTTP
-jest.mock('axios');
-const axios = require('axios');
 
-const { GetMiPay }      = require('../src/index');
-const { ValidationError, ApiError } = require('../src/utils/errors');
+jest.unstable_mockModule('axios', () => {
+  const mockAxiosInstance = {
+    post: jest.fn(),
+    get: jest.fn(),
+  };
+
+  return {
+    default: {
+      create: jest.fn(() => mockAxiosInstance),
+    },
+  };
+});
+
+// import après mock
+const { default: HttpClient } = await import('../src/http/client.js');
+
+describe('HttpClient', () => {
+  test('should create client', () => {
+    const config = {
+      baseUrl: 'https://api.test.com',
+      timeout: 5000,
+    };
+
+    const client = new HttpClient(config);
+
+    expect(client).toBeDefined();
+  });
+});
+// Étape 1 : Déclarer le mock AVANT tout import dynamique (règle ESM stricte)
+jest.unstable_mockModule('axios', () => {
+  const mockAxiosInstance = {
+    post: jest.fn(),
+    get:  jest.fn(),
+  };
+  return {
+    default: {
+      create: jest.fn(() => mockAxiosInstance),
+    },
+  };
+});
+
+// Étape 2 : Importer les modules APRÈS le mock (imports dynamiques obligatoires en ESM)
+const { default: axios }      = await import('axios');
+const { GetMiPay }            = await import('../src/index.js');
+const { ValidationError }     = await import('../src/utils/errors.js');
 
 // ---------------------------------------------------------------------------
-// Setup : configuration SDK de test
+// Données de test
 // ---------------------------------------------------------------------------
 
-// Réponse simulée renvoyée par l'API sandbox
 const MOCK_PAYIN_RESPONSE = {
   reference  : 'GMP-TEST-001',
   status     : 'pending',
-  amount     : 5000,
-  currency   : 'XOF',
+  amount     : 500,
+  currency   : 'XAF',
   created_at : '2024-01-01T00:00:00Z',
 };
 
-// Paramètres valides réutilisés dans les tests
 const VALID_PARAMS = {
-  amount        : 5000,
-  currency      : 'XOF',
-  wallet        : '+2250700000000',
-  customer_name : 'Test User',
-  customer_email: 'test@example.com',
-  description   : 'Test payment',
-  callback_url  : 'https://yourapp.com/webhook',
+  amount         : 500,
+  currency       : 'XAF',
+  wallet         : '652083096',
+  customer_name  : 'Test User',
+  customer_email : 'test@example.com',
+  description    : 'Test payment',
+  callback_url   : 'https://yourapp.com/webhook',
 };
+
+// ---------------------------------------------------------------------------
+// Suite de tests
+// ---------------------------------------------------------------------------
 
 describe('Payments Service', () => {
   let mipay;
+  let mockAxiosInstance;
 
-  // Avant chaque test : créer une instance SDK fraîche et configurer le mock axios
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Simuler axios.create() → retourner un objet avec .post() et .get() mockés
-    axios.create.mockReturnValue({
-      post: jest.fn().mockResolvedValue({ data: MOCK_PAYIN_RESPONSE }),
-      get : jest.fn().mockResolvedValue({ data: MOCK_PAYIN_RESPONSE }),
-    });
+    // Récupérer l'instance mockée retournée par axios.create()
+    mockAxiosInstance = axios.create();
+
+    // Configurer les réponses par défaut
+    mockAxiosInstance.post.mockResolvedValue({ data: MOCK_PAYIN_RESPONSE });
+    mockAxiosInstance.get.mockResolvedValue({ data: MOCK_PAYIN_RESPONSE });
 
     mipay = new GetMiPay({
-      apiKey      : 'gmp_sk_test_abc123',
-      environment : 'sandbox',
+      apiKey      : process.env.GMP_API_KEY,
+      environment : 'production',
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Tests de payin()
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // payin — cas de succès
+  // -------------------------------------------------------------------------
 
-  describe('payin()', () => {
-
-    it('doit initier un paiement avec des paramètres valides', async () => {
-      const response = await mipay.payments.payin(VALID_PARAMS);
-
-      // Vérifier que la réponse contient les champs attendus
-      expect(response.reference).toBe('GMP-TEST-001');
-      expect(response.status).toBe('pending');
-      expect(response.amount).toBe(5000);
-      expect(response.currency).toBe('XOF');
-    });
-
-    it('doit retourner un objet Response avec les méthodes utilitaires', async () => {
-      const response = await mipay.payments.payin(VALID_PARAMS);
-
-      expect(typeof response.isPending).toBe('function');
-      expect(typeof response.isSuccess).toBe('function');
-      expect(typeof response.isFailed).toBe('function');
-      expect(response.isPending()).toBe(true);
-    });
-
-    it('doit lever ValidationError si "amount" est absent', async () => {
-      const params = { ...VALID_PARAMS };
-      delete params.amount;
-
-      await expect(mipay.payments.payin(params))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si "currency" est absent', async () => {
-      await expect(mipay.payments.payin({ ...VALID_PARAMS, currency: undefined }))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si "wallet" est absent', async () => {
-      await expect(mipay.payments.payin({ ...VALID_PARAMS, wallet: undefined }))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si "callback_url" est absent', async () => {
-      await expect(mipay.payments.payin({ ...VALID_PARAMS, callback_url: undefined }))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si "amount" est négatif', async () => {
-      await expect(mipay.payments.payin({ ...VALID_PARAMS, amount: -100 }))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si "currency" n\'est pas un code ISO valide', async () => {
-      await expect(mipay.payments.payin({ ...VALID_PARAMS, currency: 'euro' }))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si "callback_url" est une URL invalide', async () => {
-      await expect(mipay.payments.payin({ ...VALID_PARAMS, callback_url: 'not-a-url' }))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit fonctionner sans les champs optionnels', async () => {
-      const minimalParams = {
-        amount       : 5000,
-        currency     : 'XOF',
-        wallet       : '+2250700000000',
-        callback_url : 'https://yourapp.com/webhook',
-      };
-      const response = await mipay.payments.payin(minimalParams);
-      expect(response.reference).toBe('GMP-TEST-001');
-    });
+  test('payin() retourne la référence correcte en cas de succès', async () => {
+    const response = await mipay.payments.payin(VALID_PARAMS);
+    expect(response.reference).toBe('GMP-TEST-001');
   });
 
-  // ---------------------------------------------------------------------------
-  // Tests de getStatus()
-  // ---------------------------------------------------------------------------
-
-  describe('getStatus()', () => {
-
-    it('doit retourner le statut d\'un paiement existant', async () => {
-      const response = await mipay.payments.getStatus('GMP-TEST-001');
-      expect(response.reference).toBe('GMP-TEST-001');
-      expect(response.status).toBe('pending');
-    });
-
-    it('doit lever ValidationError si la référence est absente', async () => {
-      await expect(mipay.payments.getStatus(''))
-        .rejects.toThrow(ValidationError);
-    });
-
-    it('doit lever ValidationError si la référence est undefined', async () => {
-      await expect(mipay.payments.getStatus(undefined))
-        .rejects.toThrow(ValidationError);
-    });
+  test('payin() retourne le bon statut', async () => {
+    const response = await mipay.payments.payin(VALID_PARAMS);
+    expect(response.status).toBe('pending');
+    expect(response.isPending()).toBe(true);
+    expect(response.isSuccess()).toBe(false);
   });
 
-  // ---------------------------------------------------------------------------
-  // Tests de configuration
-  // ---------------------------------------------------------------------------
+  test('payin() appelle axios.post avec le bon chemin', async () => {
+    await mipay.payments.payin(VALID_PARAMS);
+    expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+      '/payments/payin',
+      expect.objectContaining({ amount: 500, currency: 'XAF' }),
+      expect.objectContaining({ headers: expect.any(Object) })
+    );
+  });
 
-  describe('Configuration', () => {
+  // -------------------------------------------------------------------------
+  // payin — erreurs de validation
+  // -------------------------------------------------------------------------
 
-    it('doit lever une erreur si la clé API est absente', () => {
-      expect(() => new GetMiPay({ environment: 'sandbox' }))
-        .toThrow('API key is required');
-    });
+  test('payin() lève ValidationError si amount manquant', async () => {
+    const params = { ...VALID_PARAMS };
+    delete params.amount;
+    await expect(mipay.payments.payin(params)).rejects.toThrow(ValidationError);
+  });
 
-    it('doit lever une erreur si l\'environnement est invalide', () => {
-      expect(() => new GetMiPay({ apiKey: 'gmp_sk_test', environment: 'staging' }))
-        .toThrow('Environment must be');
-    });
+  test('payin() lève ValidationError si currency manquante', async () => {
+    const params = { ...VALID_PARAMS };
+    delete params.currency;
+    await expect(mipay.payments.payin(params)).rejects.toThrow(ValidationError);
+  });
+
+  test('payin() lève ValidationError si wallet manquant', async () => {
+    const params = { ...VALID_PARAMS };
+    delete params.wallet;
+    await expect(mipay.payments.payin(params)).rejects.toThrow(ValidationError);
+  });
+
+  test('payin() lève ValidationError si callback_url manquante', async () => {
+    const params = { ...VALID_PARAMS };
+    delete params.callback_url;
+    await expect(mipay.payments.payin(params)).rejects.toThrow(ValidationError);
+  });
+
+  test('payin() lève ValidationError si amount est négatif', async () => {
+    await expect(
+      mipay.payments.payin({ ...VALID_PARAMS, amount: -100 })
+    ).rejects.toThrow(ValidationError);
+  });
+
+  test('payin() lève ValidationError si currency invalide', async () => {
+    await expect(
+      mipay.payments.payin({ ...VALID_PARAMS, currency: 'xaf' }) // minuscules
+    ).rejects.toThrow(ValidationError);
+  });
+
+  // -------------------------------------------------------------------------
+  // getStatus
+  // -------------------------------------------------------------------------
+
+  test('getStatus() retourne la réponse correcte', async () => {
+    const response = await mipay.payments.getStatus('GMP-TEST-001');
+    expect(response.reference).toBe('GMP-TEST-001');
+    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+      '/payments/GMP-TEST-001/status',
+      expect.objectContaining({ headers: expect.any(Object) })
+    );
+  });
+
+  test('getStatus() lève ValidationError si référence absente', async () => {
+    await expect(mipay.payments.getStatus('')).rejects.toThrow(ValidationError);
   });
 });

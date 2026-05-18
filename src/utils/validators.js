@@ -4,7 +4,8 @@
 //                Centralisées ici pour rester réutilisables dans tous les services.
 // =============================================================================
 
-const { ValidationError } = require('./errors');
+// ✅ CORRECTION : "require('./errors')" remplacé par import ESM
+import { ValidationError } from './errors.js';
 
 /**
  * Valide les paramètres obligatoires d'un PayIn.
@@ -13,7 +14,7 @@ const { ValidationError } = require('./errors');
  * @param {Object} params - Paramètres passés à payments.payin().
  * @throws {ValidationError}
  */
-function validatePayinParams(params) {
+export function validatePayinParams(params) {
   // Vérification des champs obligatoires
   const required = ['amount', 'currency', 'wallet', 'callback_url'];
   for (const field of required) {
@@ -40,4 +41,5 @@ function validatePayinParams(params) {
   }
 }
 
-module.exports = { validatePayinParams };
+// ✅ CORRECTION : "module.exports = { validatePayinParams }" supprimé
+//                L'export nommé "export function" ci-dessus suffit

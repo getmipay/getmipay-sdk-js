@@ -5,9 +5,12 @@
 //                Chaque requête est signée avec : méthode + chemin + timestamp + corps.
 // =============================================================================
 
-const crypto = require('crypto');
+// ✅ CORRECTION : "const crypto = require('crypto')" remplacé par import ESM
+import crypto from 'crypto';
 
-class Signature {
+// ✅ CORRECTION : un seul "export default class" — la ligne "export default Signature"
+//                du bas a été supprimée (elle causait le crash "Only one default export")
+export default class Signature {
   /**
    * Génère la signature HMAC-SHA256 à partir des éléments de la requête.
    *
@@ -37,9 +40,9 @@ class Signature {
    * Construit l'objet complet des headers HTTP authentifiés pour une requête.
    * Génère un nouveau timestamp à chaque appel pour garantir la fraîcheur.
    *
-   * @param {string} apiKey  - La clé secrète API.
-   * @param {string} method  - Méthode HTTP ('GET', 'POST', etc.).
-   * @param {string} path    - Chemin de l'endpoint.
+   * @param {string} apiKey    - La clé secrète API.
+   * @param {string} method    - Méthode HTTP ('GET', 'POST', etc.).
+   * @param {string} path      - Chemin de l'endpoint.
    * @param {Object} [body={}] - Corps de la requête (objet JS, sérialisé en interne).
    * @returns {Object} Headers HTTP prêts à être envoyés avec la requête.
    */
@@ -54,14 +57,13 @@ class Signature {
     const signature = this.generate(apiKey, method, path, timestamp, bodyStr);
 
     return {
-      'x-api-key'      : apiKey,       // Identifiant de la clé API
-      'x-timestamp'    : timestamp,    // Timestamp pour prévenir les attaques par rejeu
-      'x-signature'    : signature,    // Signature HMAC-SHA256 calculée
+      'x-api-key'      : apiKey,      // Identifiant de la clé API
+      'x-timestamp'    : timestamp,   // Timestamp pour prévenir les attaques par rejeu
+      'x-signature'    : signature,   // Signature HMAC-SHA256 calculée
       'Content-Type'   : 'application/json',
-      'x-sdk-version'  : '1.0.0',      // Version du SDK (pour le support et le suivi)
-      'x-sdk-language' : 'javascript'  // Langage du SDK (utile pour les analytics API)
+      'x-sdk-version'  : '1.0.0',     // Version du SDK (pour le support et le suivi)
+      'x-sdk-language' : 'javascript' // Langage du SDK (utile pour les analytics API)
     };
   }
 }
-
-module.exports = Signature;
+// ✅ Pas de "export default Signature" ici — déjà exporté sur la ligne "export default class"

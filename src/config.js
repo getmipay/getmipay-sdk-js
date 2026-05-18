@@ -1,57 +1,44 @@
 // =============================================================================
 // Fichier      : src/config.js
-// Description  : Gestionnaire de configuration du SDK GetMiPay.
-//                Gère la clé API, l'environnement (sandbox/production),
-//                le timeout et construit l'URL de base correspondante.
+// Description  : Configuration centrale du SDK GetMiPay.
+//                Gère les options d'initialisation, les valeurs par défaut,
+//                et la validation des paramètres obligatoires.
 // =============================================================================
 
-class Config {
+export default class Config {
   /**
-   * Crée une instance de configuration.
+   * Initialise la configuration du SDK.
    *
-   * @param {Object} options              - Options de configuration.
-   * @param {string} options.apiKey       - Clé API GetMiPay (obligatoire).
-   * @param {string} [options.environment='sandbox'] - 'sandbox' ou 'production'.
-   * @param {number} [options.timeout=30000]         - Timeout HTTP en millisecondes.
+   * @param {Object} [options={}]
+   * @param {string} [options.apiKey]       - Clé API GetMiPay (priorité sur la variable d'env).
+   * @param {string} [options.environment]  - 'sandbox' (défaut) ou 'production'.
+   * @param {number} [options.timeout]      - Timeout HTTP en ms (défaut : 30000).
    */
   constructor(options = {}) {
-    // Clé API : priorité à l'option passée, sinon variable d'environnement
-    this.apiKey = options.apiKey || process.env.GMP_API_KEY;
-
-    // Environnement d'exécution (sandbox par défaut pour éviter tout risque)
+    this.apiKey      = options.apiKey      || process.env.GMP_API_KEY;
     this.environment = options.environment || 'sandbox';
+    this.timeout     = options.timeout     || 30000;
 
-    // Timeout des requêtes HTTP (30 secondes par défaut)
-    this.timeout = options.timeout || 30000;
+this.baseUrl = this.environment === 'production'
+  ? 'https://getmipay.com/api/v1'
+  : 'https://sandbox.getmipay.com/api/v1';
 
-    // URL de base déterminée selon l'environnement
-    this.baseUrl = this.environment === 'production'
-      ? 'https://api.getmipay.com/v1'       // URL de production réelle
-      : 'https://sandbox.getmipay.com/v1';  // URL sandbox pour les tests
-
-    // Version du SDK (injectée dans les headers pour le suivi)
     this.version = '1.0.0';
   }
 
   /**
-   * Valide la configuration avant toute requête.
-   * Lève une erreur si la clé API est absente ou si l'environnement est invalide.
-   *
-   * @throws {Error} Si la clé API est manquante ou l'environnement incorrect.
+   * Valide que la configuration est correcte avant toute utilisation du SDK.
+   * @throws {Error} Si la clé API est absente ou si l'environnement est invalide.
    */
   validate() {
-    // La clé API est obligatoire pour authentifier les requêtes
     if (!this.apiKey) {
       throw new Error(
         'API key is required. Set GMP_API_KEY or pass apiKey in config.'
       );
     }
 
-    // Seuls deux environnements sont supportés
     if (!['sandbox', 'production'].includes(this.environment)) {
       throw new Error('Environment must be "sandbox" or "production"');
     }
   }
 }
-
-module.exports = Config;
