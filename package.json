@@ -1,0 +1,36 @@
+{
+  "name": "@getmipay/sdk",
+  "version": "1.0.0",
+  "description": "Official GetMiPay SDK for JavaScript/Node.js",
+  "main": "src/index.js",
+  "types": "types/index.d.ts",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint src/",
+    "build": "tsc",
+    "prepublishOnly": "npm test"
+  },
+  "keywords": [
+    "mobile-money",
+    "payment",
+    "africa",
+    "getmipay"
+  ],
+  "author": "GetMiPay",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.16.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "jest": "^29.7.0",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getmipay/getmipay-sdk-js.git"
+  }
+}
